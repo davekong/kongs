@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans  xmlns="http://www.springframework.org/schema/beans"      
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"      
+			xmlns:mvc="http://www.springframework.org/schema/mvc"      
+		    xmlns:context="http://www.springframework.org/schema/context"      
+			xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd      
+            http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+            "      
+            >  
+    <!-- 短信监听暂时只在后台添加了，web端暂时没用到，在web.xml没有加载，可以先留着 -->
+	<!-- 定时任务管理者 -->
+	<bean id="schedulerFactory"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="dockTrigger" />
+			</list>
+		</property>
+	</bean>
+
+	
+	<!-- 发码 触发器-->
+	<bean id="dockTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="dockTask"></property>
+		<property name="cronExpression" value="0/5 * * * * ?"></property> <!--每五秒执行一次 -->
+	</bean>
+	
+	<!-- 短信任务-->
+	<bean id="dockTask"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<!-- 要调用的bean -->
+		<property name="targetObject" ref="dockJob"></property>
+		<!-- 要调用的Method -->
+		<property name="targetMethod" value="sendDocks"></property>
+		<!-- 是否并发,false表示 如果发生错误也不影响下一次的调用 -->
+		<property name="concurrent" value="false"></property>
+	</bean>
+
+	<!-- 短信发送 bean-->
+	<bean id="dockJob" class="com.gf.lyl.dock.task.DockJob"></bean>
+	
+	
+	<bean id="dockQuene" class="com.gf.lyl.dock.task.DockQuene"></bean>
+</beans> 

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans  
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+			xmlns="http://www.springframework.org/schema/beans" 
+			xmlns:context="http://www.springframework.org/schema/context" 
+		     
+		    xsi:schemaLocation="  
+            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd  
+            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd  
+            ">  
+  
+    <context:property-placeholder location="classpath:config/db.properties" />  
+  
+    <bean id="dataSource"  
+        class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">  
+        <property name="driverClass" value="${jdbc.driverClassName}" />  
+        <property name="jdbcUrl" value="${jdbc.url}" />  
+        <property name="user" value="${jdbc.username}" />  
+        <property name="password" value="${jdbc.password}" /> 
+  		<property name="autoCommitOnClose" value="${datasource.autoCommitOnClose}"/>   
+	    <property name="minPoolSize" value="${datasource.minPoolSize}"/>  
+	    <property name="maxPoolSize" value="${datasource.maxPoolSize}"/>    
+	    <property name="initialPoolSize" value="${datasource.initialPoolSize}"/>    
+	    <property name="maxIdleTime" value="${datasource.maxIdleTime}"/>        
+	    <property name="acquireIncrement" value="${datasource.acquireIncrement}"/>        
+	    <property name="acquireRetryAttempts" value="${datasource.acquireRetryAttempts}"/>      
+	    <property name="checkoutTimeout" value="${datasource.checkoutTimeout}"/>   
+    </bean>  
+  
+    <bean id="sessionFactory"  
+        class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">  
+        <property name="dataSource" ref="dataSource" />  
+        <property name="hibernateProperties">  
+            <props>  
+            	<prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.dialect">${hibernate.dialect}</prop>  
+                <prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</prop>  
+            </props>  
+        </property>  
+        <property name="packagesToScan">  
+            <list>  
+           		<!-- 扫描实体类 -->  
+                <value>com.gf.lyl.*.model</value>
+            </list>  
+        </property>  
+    </bean>  
+    
+    <!-- 扫描dao层，完成bean的创建 -->
+	<context:component-scan base-package="com.gf.lyl.*.dao.impl" >
+		<context:exclude-filter type="regex" expression=".*Impl"/>  <!-- 排除 以Imp结尾的类（它是oracle的dao实现，现修订为mysql） -->
+	</context:component-scan>
+  
+    <!-- 这个类由于无法使用注解注册bean 只能声明 -->
+    <bean id="hibernateTemplate" class="org.springframework.orm.hibernate3.HibernateTemplate">  
+        <property name="sessionFactory" ref="sessionFactory"></property>  
+    </bean>  
+  
+  
+</beans>  
