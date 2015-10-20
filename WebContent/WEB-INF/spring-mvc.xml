@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans  xmlns="http://www.springframework.org/schema/beans"      
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"      
+			xmlns:mvc="http://www.springframework.org/schema/mvc"      
+		    xmlns:context="http://www.springframework.org/schema/context"      
+			xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd      
+            http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+            "      
+            >  
+    
+     <!-- 对action包中的所有类进行扫描，以完成Bean创建和自动依赖注入的功能 -->  
+     <context:component-scan base-package="com.gf.lyl.*.action;com.gf.lyl.mobile.*.action"/> 
+     
+     <!-- MultipartResolver处理器  -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="UTF-8" />
+		<!-- 指定所上传文件的总大小不能超过200KB。注意maxUploadSize属性的限制不是针对单个文件，而是所有文件的容量之和 
+		<property name="maxUploadSize" value="200000" />-->
+	</bean>
+     
+     <!-- 支持spring3.0新的mvc注解 ，相当于注册了DefaultAnnotationHandlerMapping和AnnotationMethodHandlerAdapter两个bean， 添加@Controller的前提配置 --> 
+     <mvc:annotation-driven>
+          <mvc:message-converters register-defaults="true">
+			<!-- 将StringHttpMessageConverter的默认编码设为UTF-8 -->
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<constructor-arg value="UTF-8" /><!-- jdk rt.jar用于字符转字节的转换编码  和http 无蛋关系 坑死我了 -->
+			</bean>
+			
+		</mvc:message-converters>
+     </mvc:annotation-driven>  
+     
+
+    <!-- 
+          视图解析
+    1、被@ResponseBody注解的方法不会由视图解析器，它是由httpmessageconveter直接向响应body中写数据。
+     -->
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+
+       <!-- 
+       view的选择。
+       a>、spring容器启动时，根据1.1~1.4的设置，决定是否初始化四种策略：PathExtension、Parameter、Header、Fixed
+                             其中PathExtension、Parameter策略要使用1.5的配置。
+           
+       b>、根据本次请求的uri，使用已经配置的策略计算出本次响应可能的contentTypes
+           PathExtension计算的策略是：本次请求uri的后缀是否为1.5配置之一，有则返回此contentType
+           Parameter计算的策略是：根据本次请求的uri中的formate参数对应的value是否为1.5配置之一，有则返回此contentType
+           Header计算的策略是：返回本次请求头部的accept对应的value（此vlaue是浏览器所支持的）。
+           Fixed计算策略是：直接返回xml配置的定值。
+                            
+                            若这四种策略获得contentType集合为size=0，则将*/*填充到集合中
+           
+                           从以上获得contentType中筛选出兼容producibleContentType。>>>目前producibleContentType为“*/*”
+                            
+                            若本次请求可能的响应contentType不为null，转到c！
+           
+    
+      c>、计算出本次响应可能的views
+          c1>、使用视图解析器（1.6配置的），根据viewname解析出view 加入响应集合。
+          
+                          视图解析器只能根据viewname进行解析，
+          viewname可以是原生的（即由我们control方法设定的），也可是扩展的（即原生viewname+后缀）
+                          
+                          后缀如何获取？
+                          使用PathExtension、Parameter两种策略 对从b获得contentType计算后缀。
+                          
+          c2>、把1.7配置的view加入响应集合。
+                          
+      d>、getBestView，假定b步骤获得contenttype为b_contentTypes；假定c步骤获得views为c_views
+           for (contentType :b_contentTypes){
+           		for(view:c_views){
+           			if  conentType 与view的contentType兼容，那么就直接retuen 此view！
+           		}
+           }
+           
+           
+        -->
+       
+		<!-- 1.1、是否启用如abc.json等extension模式 ；默认true；-->
+		<!-- 说明：为了保证url的rest风格，
+		                            建议还是不要使用xxx.json来进行访问（当然也能访问到；请使用@ResponBody来实现） -->
+		<property name="favorPathExtension" value="true" />
+
+		<!-- 1.2、是否启用?format= parameter模式，默认true-->
+		<property name="favorParameter" value="false" />
+		
+		<!-- 1.3、是否启用忽略对Accept Header默认，默认false;我们关闭，请勿打开！ -->
+		<property name="ignoreAcceptHeader" value="true" />
+
+		<!-- 1.4、是否启用定值策略；默认null；我们关闭，请勿打开！
+		<property name="defaultContentType" value="*/*" /> -->
+		
+		
+		<!--1.5、 支持的contentType -->
+		<property name="mediaTypes">
+			<map>
+				<entry key="xml" value="application/xml" />
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+		
+		
+		<!--1.6、 视图解析器 -->
+		<property name="viewResolvers">
+			<list>
+				<bean
+					class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+					<property name="viewClass"
+						value="org.springframework.web.servlet.view.JstlView" />
+					<property name="prefix" value="/WEB-INF/jsp/" />
+					<property name="suffix" value=".jsp"></property>
+				</bean>
+
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+					<property name="order" value="1" />
+				</bean>
+			</list>
+		</property>
+
+		<!--1.7、默认views  -->
+		<property name="defaultViews">
+			<list>
+				<!-- for application/json -->
+				<bean
+					class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+
+				<!-- for application/xml -->
+				<bean class="org.springframework.web.servlet.view.xml.MarshallingView">
+					<property name="marshaller">
+						<bean class="org.springframework.oxm.xstream.XStreamMarshaller" />
+					</property>
+				</bean>
+				
+			</list>
+		</property>
+	</bean>
+    
+    <!-- for 图片 -->
+    <bean  id="stream" class="com.gf.lyl.common.StreamView"/>
+    <!-- for 下载 -->
+    <bean  id="download" class="com.gf.lyl.common.DownloadView"/>
+    
+    <!-- 全局异常处理 -->
+    <bean id="exceptionResolver" class="com.gf.lyl.common.CustomMappingExceptionResover">  
+      <property name="exceptionMappings">   
+        <props>   
+          <prop key="java.lang.exception">/errors/500</prop>  
+       </props>   
+     </property>  
+     
+     <property name="statusCodes">     
+        <props>     
+            <prop key="/errors/500">500</prop>     
+        </props>     
+    </property>    
+      
+     <!-- 默认错误viewname，当找不到上面exceptionMappings中指定的异常对应的viewname时，使用本默认配置 -->     
+     <property name="defaultErrorView" value="/errors/500"></property>     
+     <!-- 默认错误statuscode，当找不到上面statusCodes中指定的viewname对应的statuscode时，使用本默认配置 -->     
+     <property name="defaultStatusCode" value="500"></property>     
+     
+     <!-- 设置日志输出级别，不定义则默认不输出警告等错误日志信息 -->     
+     <property name="warnLogCategory" value="WARN"></property>    
+      
+    </bean>
+    
+</beans> 
